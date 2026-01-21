@@ -41,5 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 #misc
-learning.md
+learning-stuff.md
 IMPLEMENTATION_ROADMAP.md
+.claude
+prod-ca-2021.crt
