@@ -5,9 +5,9 @@
 // Grid card displaying attendee profile
 // ============================================
 
-import { Card, CardBody } from '@/componentsui/Card';
-import { Avatar } from '@/componentsui/Avatar';
-import { StatusBadge } from '@/componentsui/StatusBadge';
+import { Card, CardBody } from '@/components/ui/Card';
+import { Avatar } from '@/components/ui/Avatar';
+import { StatusBadge } from '@/components/events/StatusBadge';
 import { AttendeeStatus } from '@/types/event';
 import { cn } from '@/lib/utils/cn';
 

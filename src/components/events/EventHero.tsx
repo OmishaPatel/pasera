@@ -6,8 +6,8 @@
 // ============================================
 
 import { useState } from 'react';
-import { Button } from '@/componentsui/Button';
-import { Badge } from '@/componentsui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { EventStatus } from '@/types/event';
 import { Share2, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
-import { Badge } from '@/componentsui/Badge';
+import { Badge } from '@/components/ui/Badge';
 
 /**
  * BottomNav Component - Mobile Bottom Navigation

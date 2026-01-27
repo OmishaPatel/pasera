@@ -5,10 +5,10 @@
 // List row displaying attendee profile
 // ============================================
 
-import { Avatar } from '@/componentsui/Avatar';
-import { StatusBadge } from '@/componentsui/StatusBadge';
-import { Button } from '@/componentsui/Button';
-import { Badge } from '@/componentsui/Badge';
+import { Avatar } from '@/components/ui/Avatar';
+import { StatusBadge } from '@/components/events/StatusBadge';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { AttendeeStatus } from '@/types/event';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { Mail, MessageCircle } from 'lucide-react';

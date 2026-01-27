@@ -5,8 +5,8 @@
 // Display event capacity with progress bar
 // ============================================
 
-import { ProgressBar } from '@/componentsui/ProgressBar';
-import { Badge } from '@/componentsui/Badge';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils/cn';
 
 export interface CapacityDisplayProps extends React.HTMLAttributes<HTMLDivElement> {

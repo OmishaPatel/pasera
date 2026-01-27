@@ -5,7 +5,7 @@
 // Specialized badge for attendee RSVP status
 // ============================================
 
-import { Badge, BadgeProps } from '@/componentsui/Badge';
+import { Badge, BadgeProps } from '@/components/ui/Badge';
 import { CheckCircle, HelpCircle, Star, Clock } from 'lucide-react';
 import { AttendeeStatus } from '@/types/event';
 

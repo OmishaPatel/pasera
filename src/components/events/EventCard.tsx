@@ -5,11 +5,11 @@
 // Comprehensive event summary card
 // ============================================
 
-import { Card, CardHeader, CardBody, CardFooter } from '@/componentsui/Card';
-import { Avatar } from '@/componentsui/Avatar';
-import { Badge } from '@/componentsui/Badge';
-import { Button } from '@/componentsui/Button';
-import { CapacityDisplay } from '@/componentsui/CapacityDisplay';
+import { Card, CardHeader, CardBody, CardFooter } from '@/components/ui/Card';
+import { Avatar } from '@/components/ui/Avatar';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { CapacityDisplay } from '@/components/events/CapacityDisplay';
 import { EventWithOrganizer } from '@/types/event';
 import { Calendar, MapPin } from 'lucide-react';
 import { formatEventDateShort } from '@/lib/utils/date';

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { forwardRef } from 'react';
-import { Input } from './Input';
+import { Input } from '@/components/ui/Input';
 
 /**
  * DatePicker Component - Enhanced Native Date Input Wrapper

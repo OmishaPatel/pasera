@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
-import { Button } from '@/componentsui/Button';
-import { Avatar } from '@/componentsui/Avatar';
+import { Button } from '@/components/ui/Button';
+import { Avatar } from '@/components/ui/Avatar';
 import { Menu, X, Search } from 'lucide-react';
 
 /**

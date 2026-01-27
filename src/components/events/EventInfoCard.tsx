@@ -5,7 +5,7 @@
 // Display event date, time, and location
 // ============================================
 
-import { Card, CardBody } from '@/componentsui/Card';
+import { Card, CardBody } from '@/components/ui/Card';
 import { Calendar, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { formatEventDate, formatTimeRange } from '@/lib/utils/date';
 import { cn } from '@/lib/utils/cn';
