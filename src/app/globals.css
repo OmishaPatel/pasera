@@ -82,3 +82,42 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* Custom Animations for Priority 5 Components */
+
+/* Slide in from right (for notifications) */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Slide up from bottom (for banners) */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* iOS safe area support */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
