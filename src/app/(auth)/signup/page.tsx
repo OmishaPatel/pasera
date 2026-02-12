@@ -33,7 +33,7 @@ export default function SignupPage() {
       <Card>
         <CardHeader
           title="Create Account"
-          subtitle="Join OutdoorPath and start exploring"
+          subtitle="Join Pasera and start exploring"
         />
         <CardBody>
           <div className="space-y-3">

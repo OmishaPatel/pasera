@@ -34,7 +34,7 @@ export function WaitlistNotificationEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Text style={logo}>🏔️ OutdoorPath</Text>
+            <Text style={logo}>🏔️ Pasera</Text>
             <Heading style={title}>Great News! A Spot Opened Up!</Heading>
             <Text style={subtitle}>
               {userName ? `Hi ${userName}, y` : 'Y'}ou've moved to the front of the waitlist
@@ -72,7 +72,7 @@ export function WaitlistNotificationEmail({
           <Section style={footer}>
             <Hr style={hr} />
             <Text style={footerText}>
-              This email was sent because you joined the waitlist for this event on OutdoorPath.
+              This email was sent because you joined the waitlist for this event on Pasera.
             </Text>
             <Text style={footerText}>
               <Link href={`${claimUrl.split('/events/')[0]}/dashboard`} style={footerLink}>
@@ -84,7 +84,7 @@ export function WaitlistNotificationEmail({
               </Link>
             </Text>
             <Text style={copyright}>
-              © {new Date().getFullYear()} OutdoorPath. All rights reserved.
+              © {new Date().getFullYear()} Pasera. All rights reserved.
             </Text>
           </Section>
         </Container>
@@ -236,7 +236,7 @@ export function WaitlistNotificationEmailText({
   userName,
 }: WaitlistNotificationEmailProps) {
   return `
-OutdoorPath - A Spot Opened Up!
+Pasera - A Spot Opened Up!
 
 Hi ${userName || 'there'},
 
@@ -253,8 +253,8 @@ Claim your spot now:
 ${claimUrl}
 
 ---
-This email was sent because you joined the waitlist for this event on OutdoorPath.
+This email was sent because you joined the waitlist for this event on Pasera.
 
-© ${new Date().getFullYear()} OutdoorPath. All rights reserved.
+© ${new Date().getFullYear()} Pasera. All rights reserved.
   `.trim();
 }

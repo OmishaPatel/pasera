@@ -18,7 +18,7 @@ export async function generateMetadata({
     const event = await getEventById(id);
 
     return {
-      title: `${event.title} | OutdoorPath`,
+      title: `${event.title} | Pasera`,
       description: event.description,
       openGraph: {
         title: event.title,
@@ -28,7 +28,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     return {
-      title: 'Event Not Found | OutdoorPath',
+      title: 'Event Not Found | Pasera',
     };
   }
 }

@@ -33,7 +33,7 @@ export default function LoginPage() {
       <Card>
         <CardHeader
           title="Welcome Back"
-          subtitle="Sign in to your OutdoorPath account"
+          subtitle="Sign in to your Pasera account"
         />
         <CardBody>
           <div className="space-y-3">
