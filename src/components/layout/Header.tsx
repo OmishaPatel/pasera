@@ -153,14 +153,14 @@ export function Header({
     fixed: 'fixed top-0 left-0 right-0 z-40',
   };
 
-  // Default OutdoorPath logo
+  // Default Pasera logo
   const defaultLogo = (
     <div className="flex items-center gap-2">
       <div className="w-8 h-8 bg-[var(--color-primary)] rounded-[var(--radius-md)] flex items-center justify-center">
-        <span className="text-white font-bold text-lg">O</span>
+        <span className="text-white font-bold text-lg">P</span>
       </div>
       <span className="text-xl font-bold text-[var(--color-gray-900)]">
-        OutdoorPath
+        Pasera
       </span>
     </div>
   );

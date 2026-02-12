@@ -1,5 +1,5 @@
 // ============================================
-// OutdoorPath TypeScript Type Definitions
+// Pasera TypeScript Type Definitions
 // Event-related types for the application
 // ============================================
 

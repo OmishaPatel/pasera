@@ -101,7 +101,7 @@ export default function LandingPage() {
               How It Works
             </h2>
             <p className="text-lg text-[var(--color-gray-600)] max-w-2xl mx-auto">
-              Getting started with OutdoorPath is easy
+              Getting started with Pasera is easy
             </p>
           </div>
 
@@ -194,7 +194,7 @@ export default function LandingPage() {
         <Container size="lg">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[var(--color-gray-900)] mb-4">
-              Why Choose OutdoorPath
+              Why Choose Pasera
             </h2>
             <p className="text-lg text-[var(--color-gray-600)] max-w-2xl mx-auto">
               The best platform for outdoor enthusiasts

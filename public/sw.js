@@ -79,7 +79,7 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
 
   let notificationData = {
-    title: 'OutdoorPath',
+    title: 'Pasera',
     body: 'You have a new notification',
     icon: '/icon.svg',
     badge: '/icon.svg',
@@ -113,7 +113,7 @@ self.addEventListener('push', (event) => {
       badge: notificationData.badge,
       data: notificationData.data,
       vibrate: [200, 100, 200],
-      tag: 'outdoorpath-notification',
+      tag: 'pasera-notification',
       requireInteraction: true,
     })
   );

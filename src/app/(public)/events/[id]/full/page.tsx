@@ -18,12 +18,12 @@ export async function generateMetadata({
 
   if (!event) {
     return {
-      title: 'Event Not Found | OutdoorPath',
+      title: 'Event Not Found | Pasera',
     };
   }
 
   return {
-    title: `${event.title} - Event Full | OutdoorPath`,
+    title: `${event.title} - Event Full | Pasera`,
     description: `${event.title} is currently full. Join the waitlist to be notified if a spot opens up.`,
     openGraph: {
       title: `${event.title} - Event Full`,

@@ -62,10 +62,10 @@ export interface FooterProps extends React.HTMLAttributes<HTMLElement> {
   /** Social media links (Facebook, Twitter, Instagram, etc.) */
   socialLinks?: SocialLink[];
 
-  /** Copyright text (defaults to current year + "OutdoorPath") */
+  /** Copyright text (defaults to current year + "Pasera") */
   copyrightText?: string;
 
-  /** Custom logo component (defaults to OutdoorPath logo) */
+  /** Custom logo component (defaults to Pasera logo) */
   logo?: React.ReactNode;
 }
 
@@ -82,20 +82,20 @@ export function Footer({
   variant = 'full',
   sections = [],
   socialLinks = [],
-  copyrightText = `© ${new Date().getFullYear()} OutdoorPath. All rights reserved.`,
+  copyrightText = `© ${new Date().getFullYear()} Pasera. All rights reserved.`,
   logo,
   className,
   ...props
 }: FooterProps) {
 
-  // Default OutdoorPath logo
+  // Default Pasera logo
   const defaultLogo = (
     <div className="flex items-center gap-2">
       <div className="w-6 h-6 bg-[var(--color-primary)] rounded-[var(--radius-sm)] flex items-center justify-center">
-        <span className="text-white font-bold text-sm">O</span>
+        <span className="text-white font-bold text-sm">P</span>
       </div>
       <span className="text-lg font-bold text-[var(--color-gray-900)]">
-        OutdoorPath
+        Pasera
       </span>
     </div>
   );
