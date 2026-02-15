@@ -17,7 +17,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
   // Redirect to login if not authenticated
@@ -108,7 +108,10 @@ export default function DashboardLayout({
             .toUpperCase()
             .slice(0, 2),
         }}
-        onLogout={logout}
+        onLogout={async () => {
+          await signOut();
+          router.push('/');
+        }}
         onProfileClick={() => router.push('/profile')}
         variant="solid"
         position="sticky"

@@ -17,17 +17,26 @@ export default function CreateEventPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
 
   const handleCreateEvent = async (eventData: Partial<Event>) => {
-    // TODO: Phase 5 - Replace with Supabase insert
-    console.log('Creating event:', eventData);
+    try {
+      // Convert event data to FormData for server action
+      const formData = new FormData();
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      // Dynamically append all defined fields to FormData
+      Object.entries(eventData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, typeof value === 'number' ? value.toString() : value);
+        }
+      });
 
-    // Mock: Generate event ID
-    const mockEventId = `event-${Date.now()}`;
+      // Import and call the createEvent server action
+      const { createEvent } = await import('@/app/actions/events');
+      await createEvent(formData);
 
-    // Redirect to event detail or dashboard
-    router.push(`/events/${mockEventId}`);
+      // The createEvent action will handle redirect
+    } catch (error) {
+      console.error('Error creating event:', error);
+      throw error;
+    }
   };
 
   return (

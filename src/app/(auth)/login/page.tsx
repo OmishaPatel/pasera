@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardBody, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,8 @@ import { FormError } from '@/components/forms/FormError';
 
 export default function LoginPage() {
   const { signInWithOAuth, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [error, setError] = useState('');
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
@@ -20,7 +23,7 @@ export default function LoginPage() {
     setLoadingProvider(provider);
 
     try {
-      await signInWithOAuth(provider);
+      await signInWithOAuth(provider, next || undefined);
       // OAuth will redirect to callback page
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
