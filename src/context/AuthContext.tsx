@@ -13,7 +13,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isOrganizer: boolean;
-  signInWithOAuth: (provider: 'google' | 'facebook' | 'apple') => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'facebook' | 'apple', redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
 }
@@ -83,11 +83,19 @@ export function AuthProvider({
     }
   };
 
-  const signInWithOAuth = async (provider: 'google' | 'facebook' | 'apple') => {
+  const signInWithOAuth = async (
+    provider: 'google' | 'facebook' | 'apple',
+    redirectTo?: string
+  ) => {
+    // Build callback URL with optional next parameter
+    const callbackUrl = redirectTo
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`
+      : `${window.location.origin}/auth/callback`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
 

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
@@ -48,6 +49,7 @@ export function EventDetailClient({
   attendeeCounts
 }: EventDetailClientProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [showAttendeesModal, setShowAttendeesModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -67,10 +69,16 @@ export function EventDetailClient({
 
   // Handle RSVP click
   const handleRSVP = () => {
-    // TODO: Phase 5 - Integrate with Supabase auth and DB
-    // For now, just show a message or redirect to login
-    console.log('RSVP clicked for event:', event.id);
-    router.push('/login');
+    if (!user) {
+      // User not authenticated - redirect to login with return URL
+      router.push(`/login?next=/events/${event.id}`);
+      return;
+    }
+
+    // TODO: Phase 5 - Show RSVP modal or process RSVP for authenticated users
+    // For now, just log that the user is authenticated
+    console.log('RSVP clicked for event:', event.id, 'by user:', user.id);
+    // Future: Show RSVP modal with status selection (going/maybe/interested)
   };
 
   return (
