@@ -3,9 +3,9 @@
 // Event Detail Client Component
 // Handles modal state and interactive elements
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Container } from '@/components/layout/Container';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,7 @@ import { CapacityDisplay } from '@/components/events/CapacityDisplay';
 import { AttendeeCard } from '@/components/events/AttendeeCard';
 import { AttendeesModal } from '@/components/modals/AttendeesModal';
 import { ShareModal } from '@/components/modals/ShareModal';
+import { ClaimSpotDialog } from '@/components/modals/ClaimSpotDialog';
 import { RSVPButton } from '@/components/events/RSVPButton';
 import { EventWithOrganizer, EventAttendee } from '@/types/event';
 import { Profile } from '@/types/user';
@@ -50,9 +51,11 @@ export function EventDetailClient({
   userRSVP
 }: EventDetailClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [showAttendeesModal, setShowAttendeesModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
 
   // Filter attendees by status (for preview)
   const goingAttendees = attendees.filter(a => a.status === 'going');
@@ -67,6 +70,14 @@ export function EventDetailClient({
   const shareUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/events/${event.id}`
     : '';
+
+  // Check for claim query parameter and show claim dialog if user is on waitlist
+  useEffect(() => {
+    const claimParam = searchParams.get('claim');
+    if (claimParam === 'true' && userRSVP?.status === 'waitlist' && userRSVP?.waitlist_notified_at) {
+      setShowClaimDialog(true);
+    }
+  }, [searchParams, userRSVP]);
 
 
   return (
@@ -274,6 +285,8 @@ export function EventDetailClient({
                   isFull={isFull}
                   isCancelled={isCancelled}
                   variant="full"
+                  waitlistNotifiedAt={userRSVP?.waitlist_notified_at}
+                  waitlistExpiresAt={userRSVP?.waitlist_expires_at}
                   onLoginRequired={() => router.push(`/login?next=/events/${event.id}`)}
                   onStatusChange={() => router.refresh()}
                 />
@@ -320,6 +333,18 @@ export function EventDetailClient({
         onClose={() => setShowShareModal(false)}
         event={event}
         shareUrl={shareUrl}
+      />
+
+      <ClaimSpotDialog
+        open={showClaimDialog}
+        onClose={() => setShowClaimDialog(false)}
+        eventId={event.id}
+        eventTitle={event.title}
+        expiresAt={userRSVP?.waitlist_expires_at}
+        onSuccess={() => {
+          setShowClaimDialog(false);
+          router.refresh();
+        }}
       />
     </>
   );
