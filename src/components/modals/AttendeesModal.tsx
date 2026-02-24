@@ -41,6 +41,7 @@ export interface AttendeesModalProps {
   isOrganizer: boolean;
   maxCapacity: number;
   currentCapacity: number;
+  attendees: AttendeeWithUser[];
   onMessage?: (userId: string) => void;
   onEmail?: (email: string) => void;
 }
@@ -53,46 +54,12 @@ export function AttendeesModal({
   isOrganizer,
   maxCapacity,
   currentCapacity,
+  attendees,
   onMessage,
   onEmail,
 }: AttendeesModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<AttendeeStatus | 'all'>('all');
-  const [attendees, setAttendees] = useState<AttendeeWithUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch attendees (placeholder - replace with actual Supabase query)
-  useEffect(() => {
-    if (!open) return;
-
-    const fetchAttendees = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // TODO: Replace with actual Supabase query
-        // const { data, error } = await supabase
-        //   .from('event_attendees')
-        //   .select(`
-        //     *,
-        //     user:profiles!user_id(id, full_name, email, avatar_url)
-        //   `)
-        //   .eq('event_id', eventId)
-        //   .order('responded_at', { ascending: false })
-
-        // Placeholder data for now
-        setAttendees([]);
-      } catch (err) {
-        setError('Failed to load attendees');
-        console.error('Error fetching attendees:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAttendees();
-  }, [open, eventId]);
 
   // Filter attendees by search query and active tab
   const filteredAttendees = attendees.filter((attendee) => {
@@ -116,16 +83,12 @@ export function AttendeesModal({
   const statusCounts = {
     all: attendees.length,
     going: attendees.filter((a) => a.status === 'going').length,
-    maybe: attendees.filter((a) => a.status === 'maybe').length,
-    interested: attendees.filter((a) => a.status === 'interested').length,
     waitlist: attendees.filter((a) => a.status === 'waitlist').length,
   };
 
   const tabs: Array<{ value: AttendeeStatus | 'all'; label: string }> = [
     { value: 'all', label: `All (${statusCounts.all})` },
     { value: 'going', label: `Going (${statusCounts.going})` },
-    { value: 'maybe', label: `Maybe (${statusCounts.maybe})` },
-    { value: 'interested', label: `Interested (${statusCounts.interested})` },
     { value: 'waitlist', label: `Waitlist (${statusCounts.waitlist})` },
   ];
 
@@ -177,15 +140,7 @@ export function AttendeesModal({
 
         {/* Attendees list */}
         <div className="space-y-2">
-          {loading ? (
-            <div className="py-8 text-center text-[var(--color-gray-500)]">
-              Loading attendees...
-            </div>
-          ) : error ? (
-            <div className="py-8 text-center text-[var(--color-danger)]">
-              {error}
-            </div>
-          ) : filteredAttendees.length === 0 ? (
+          {filteredAttendees.length === 0 ? (
             <div className="py-8 text-center text-[var(--color-gray-500)]">
               {searchQuery
                 ? 'No attendees match your search'

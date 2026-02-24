@@ -309,10 +309,10 @@ export function Header({
                 )}
               </div>
             ) : (
-              // Unauthenticated state: Login/Signup buttons
+              // Unauthenticated state: Sign In and Sign Up buttons
               <>
-                <Button variant="ghost" size="sm" onClick={onLogin}>
-                  Log In
+                <Button variant="outline" size="sm" onClick={onLogin}>
+                  Sign In
                 </Button>
                 <Button variant="primary" size="sm" onClick={onSignup}>
                   Sign Up
@@ -432,16 +432,16 @@ export function Header({
                 </div>
               ) : (
                 // Unauthenticated state
-                <div className="flex flex-col gap-2">
+                <div className="space-y-2">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     fullWidth
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onLogin?.();
                     }}
                   >
-                    Log In
+                    Sign In
                   </Button>
                   <Button
                     variant="primary"

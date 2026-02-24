@@ -6,11 +6,11 @@
 // ============================================
 
 import { Badge, BadgeProps } from '@/components/ui/Badge';
-import { CheckCircle, HelpCircle, Star, Clock } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
 import { AttendeeStatus } from '@/types/event';
 
 export interface StatusBadgeProps extends Omit<BadgeProps, 'variant'> {
-  status: AttendeeStatus; // 'going' | 'maybe' | 'interested' | 'waitlist'
+  status: AttendeeStatus; // 'going' | 'waitlist'
   showIcon?: boolean;
   count?: number; // Optional count (e.g., "Going (15)")
 }
@@ -28,16 +28,6 @@ const statusConfig: Record<
     variant: 'success',
     label: 'Going',
     icon: CheckCircle,
-  },
-  maybe: {
-    variant: 'warning',
-    label: 'Maybe',
-    icon: HelpCircle,
-  },
-  interested: {
-    variant: 'default',
-    label: 'Interested',
-    icon: Star,
   },
   waitlist: {
     variant: 'default',
