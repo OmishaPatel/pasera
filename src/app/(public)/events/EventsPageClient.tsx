@@ -5,26 +5,33 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { Container } from '@/components/layout/Container';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { EventCard } from '@/components/events/EventCard';
 import { Badge } from '@/components/ui/Badge';
 import { Search, Filter, Calendar } from 'lucide-react';
-import type { EventWithOrganizer } from '@/types/event';
+import type { EventWithOrganizer, AttendeeStatus } from '@/types/event';
 
 interface EventsPageClientProps {
   events: EventWithOrganizer[];
+  userRSVPs: Record<string, AttendeeStatus>;
+  isAuthenticated: boolean;
 }
 
-export function EventsPageClient({ events }: EventsPageClientProps) {
+export function EventsPageClient({ events, userRSVPs, isAuthenticated }: EventsPageClientProps) {
   const router = useRouter();
+  const { user } = useAuth();
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Local state for optimistic RSVP updates
+  const [localRSVPs, setLocalRSVPs] = useState(userRSVPs);
 
   // Derived filtered events using useMemo for performance
   const filteredEvents = useMemo(() => {
@@ -70,9 +77,26 @@ export function EventsPageClient({ events }: EventsPageClientProps) {
     router.push(`/events/${eventId}`);
   };
 
-  // Handle RSVP (navigate to event detail)
-  const handleRSVP = (eventId: string) => {
-    router.push(`/events/${eventId}`);
+  // Handle RSVP with optimistic updates
+  const handleRSVP = async (eventId: string, newStatus: 'going' | null) => {
+    if (!user) {
+      router.push(`/login?next=/events`);
+      return;
+    }
+
+    // Optimistic update
+    setLocalRSVPs(prev => {
+      const updated = { ...prev };
+      if (newStatus === null) {
+        delete updated[eventId];  // Remove RSVP entirely
+      } else {
+        updated[eventId] = newStatus;
+      }
+      return updated;
+    });
+
+    // Refresh to fetch updated event data from server
+    router.refresh();
   };
 
   // Check if any filters are active
@@ -236,6 +260,8 @@ export function EventsPageClient({ events }: EventsPageClientProps) {
               <EventCard
                 key={event.id}
                 event={event}
+                rsvpStatus={localRSVPs[event.id] || null}
+                isAuthenticated={isAuthenticated}
                 showOrganizer
                 showCapacity
                 showImage

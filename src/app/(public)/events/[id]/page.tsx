@@ -3,7 +3,8 @@
 
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getEventById, getEventAttendees, getAttendeeCountByStatus } from '@/lib/supabase/queries/events';
+import { getEventById, getEventAttendees, getAttendeeCountByStatus, getUserRSVPStatus } from '@/lib/supabase/queries/events';
+import { createClient } from '@/lib/supabase/server';
 import { EventDetailClient } from './EventDetailClient';
 
 // Generate metadata for SEO
@@ -51,12 +52,22 @@ export default async function EventDetailPage({
     // Get attendee counts by status
     const attendeeCounts = await getAttendeeCountByStatus(id);
 
+    // Get user's RSVP status
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let userRSVP = null;
+    if (user) {
+      userRSVP = await getUserRSVPStatus(id, user.id);
+    }
+
     // Pass data to client component
     return (
       <EventDetailClient
         event={event}
         attendees={attendeesWithProfiles}
         attendeeCounts={attendeeCounts}
+        userRSVP={userRSVP}
       />
     );
   } catch (error) {

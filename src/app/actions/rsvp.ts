@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
  */
 export async function updateRSVP(
   eventId: string,
-  status: 'going' | 'maybe' | 'interested'
+  status: 'going'
 ) {
   const supabase = await createClient();
 
@@ -78,11 +78,22 @@ export async function updateRSVP(
 
   if (upsertError) {
     console.error('Error updating RSVP:', upsertError);
+
+    // Check if error is from database trigger rejecting over-capacity
+    if (upsertError.message?.includes('full capacity')) {
+      return {
+        success: false,
+        error: 'Event is full',
+        action: 'join_waitlist',
+      };
+    }
+
     throw new Error('Failed to update RSVP. Please try again.');
   }
 
   // Revalidate the event page
   revalidatePath(`/events/${eventId}`);
+  revalidatePath('/events');
   revalidatePath('/dashboard');
 
   return {

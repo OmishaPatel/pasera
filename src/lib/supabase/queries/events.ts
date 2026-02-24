@@ -143,8 +143,6 @@ export async function getAttendeeCountByStatus(eventId: string) {
 
   const counts = {
     going: 0,
-    maybe: 0,
-    interested: 0,
     waitlist: 0,
   };
 
@@ -202,4 +200,37 @@ export async function getUserEvents(userId: string) {
   }
 
   return data || [];
+}
+
+/**
+ * Get user's RSVP statuses for multiple events (browse page optimization)
+ */
+export async function getUserRSVPsForEvents(
+  eventIds: string[]
+): Promise<Map<string, import('@/types/event').AttendeeStatus>> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase
+    .from('event_attendees')
+    .select('event_id, status')
+    .eq('user_id', user.id)
+    .in('event_id', eventIds);
+
+  if (error) {
+    console.error('Error fetching user RSVPs:', error);
+    return new Map();
+  }
+
+  const rsvpMap = new Map<string, import('@/types/event').AttendeeStatus>();
+  data?.forEach(rsvp => {
+    rsvpMap.set(rsvp.event_id, rsvp.status as import('@/types/event').AttendeeStatus);
+  });
+
+  return rsvpMap;
 }

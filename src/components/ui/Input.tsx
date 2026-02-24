@@ -1,6 +1,6 @@
 'use client';
 
-import React, {forwardRef} from 'react';
+import React, {forwardRef, useId} from 'react';
 import {cn} from '@/lib/utils/cn';
 
 /**
@@ -47,11 +47,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref // Forwarded ref from parent component
   ) => {
-    
-    // Generate unique ID for accessibility (label association)
-    // If no ID provided, create one from label or use a timestamp
-    const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : `input-${Date.now()}`);
-    
+    // Generate stable unique ID for accessibility (label association)
+    // useId ensures the same ID on server and client for hydration
+    const generatedId = useId();
+
+    // Use provided ID, or create from label, or use the generated stable ID
+    const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : generatedId);
+
     // Helper text or error message ID for aria-describedby
     const descriptionId = `${inputId}-description`;
     const errorId = `${inputId}-error`;

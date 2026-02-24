@@ -18,7 +18,8 @@ import { CapacityDisplay } from '@/components/events/CapacityDisplay';
 import { AttendeeCard } from '@/components/events/AttendeeCard';
 import { AttendeesModal } from '@/components/modals/AttendeesModal';
 import { ShareModal } from '@/components/modals/ShareModal';
-import { EventWithOrganizer } from '@/types/event';
+import { RSVPButton } from '@/components/events/RSVPButton';
+import { EventWithOrganizer, EventAttendee } from '@/types/event';
 import { Profile } from '@/types/user';
 import { MapPin, Users, Share2, Calendar, AlertCircle } from 'lucide-react';
 
@@ -26,7 +27,7 @@ interface AttendeeWithUser {
   id: string;
   event_id: string;
   user_id: string;
-  status: 'going' | 'maybe' | 'interested' | 'waitlist';
+  status: 'going' | 'waitlist';
   responded_at: string;
   created_at: string;
   user: Profile;
@@ -37,16 +38,16 @@ interface EventDetailClientProps {
   attendees: AttendeeWithUser[];
   attendeeCounts: {
     going: number;
-    maybe: number;
-    interested: number;
     waitlist: number;
   };
+  userRSVP?: EventAttendee | null;
 }
 
 export function EventDetailClient({
   event,
   attendees,
-  attendeeCounts
+  attendeeCounts,
+  userRSVP
 }: EventDetailClientProps) {
   const router = useRouter();
   const { user } = useAuth();
@@ -57,8 +58,8 @@ export function EventDetailClient({
   const goingAttendees = attendees.filter(a => a.status === 'going');
   const previewAttendees = goingAttendees.slice(0, 5);
 
-  // Check event states
-  const isFull = event.status === 'full' || event.current_capacity >= event.max_capacity;
+  // Check event states - use actual attendee count instead of stored capacity
+  const isFull = event.status === 'full' || attendeeCounts.going >= event.max_capacity;
   const isCancelled = event.status === 'cancelled';
   const isActive = event.status === 'active' && !isFull;
 
@@ -67,19 +68,6 @@ export function EventDetailClient({
     ? `${window.location.origin}/events/${event.id}`
     : '';
 
-  // Handle RSVP click
-  const handleRSVP = () => {
-    if (!user) {
-      // User not authenticated - redirect to login with return URL
-      router.push(`/login?next=/events/${event.id}`);
-      return;
-    }
-
-    // TODO: Phase 5 - Show RSVP modal or process RSVP for authenticated users
-    // For now, just log that the user is authenticated
-    console.log('RSVP clicked for event:', event.id, 'by user:', user.id);
-    // Future: Show RSVP modal with status selection (going/maybe/interested)
-  };
 
   return (
     <>
@@ -257,31 +245,21 @@ export function EventDetailClient({
               <Card>
                 <CardBody>
                   <CapacityDisplay
-                    current={event.current_capacity}
+                    current={attendeeCounts.going}
                     max={event.max_capacity}
                     variant="default"
                     showPercentage
                   />
 
-                  {/* Attendee Counts */}
-                  {(attendeeCounts.maybe > 0 || attendeeCounts.interested > 0) && (
+                  {/* Waitlist Count */}
+                  {attendeeCounts.waitlist > 0 && (
                     <div className="mt-4 pt-4 border-t border-[var(--color-gray-200)] space-y-2">
-                      {attendeeCounts.maybe > 0 && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-[var(--color-gray-600)]">Maybe</span>
-                          <span className="font-medium text-[var(--color-gray-900)]">
-                            {attendeeCounts.maybe}
-                          </span>
-                        </div>
-                      )}
-                      {attendeeCounts.interested > 0 && (
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-[var(--color-gray-600)]">Interested</span>
-                          <span className="font-medium text-[var(--color-gray-900)]">
-                            {attendeeCounts.interested}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-[var(--color-gray-600)]">Waitlist</span>
+                        <span className="font-medium text-[var(--color-gray-900)]">
+                          {attendeeCounts.waitlist}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </CardBody>
@@ -289,15 +267,16 @@ export function EventDetailClient({
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  onClick={handleRSVP}
-                  disabled={isFull || isCancelled}
-                >
-                  {isCancelled ? 'Event Cancelled' : isFull ? 'Event Full' : 'RSVP to Event'}
-                </Button>
+                <RSVPButton
+                  eventId={event.id}
+                  currentStatus={userRSVP?.status || null}
+                  isAuthenticated={!!user}
+                  isFull={isFull}
+                  isCancelled={isCancelled}
+                  variant="full"
+                  onLoginRequired={() => router.push(`/login?next=/events/${event.id}`)}
+                  onStatusChange={() => router.refresh()}
+                />
 
                 <Button
                   variant="secondary"
@@ -330,9 +309,10 @@ export function EventDetailClient({
         onClose={() => setShowAttendeesModal(false)}
         eventId={event.id}
         eventTitle={event.title}
-        isOrganizer={false}
+        isOrganizer={user?.id === event.organizer_id}
         maxCapacity={event.max_capacity}
         currentCapacity={event.current_capacity}
+        attendees={attendees}
       />
 
       <ShareModal

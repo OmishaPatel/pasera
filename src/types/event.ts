@@ -15,11 +15,9 @@ export type EventStatus = 'active' | 'full' | 'cancelled' | 'completed'
 /**
  * Attendee Status Types
  * - going: Confirmed attendance
- * - maybe: Tentative attendance
- * - interested: Interested but not committed
  * - waitlist: On waitlist for full event
  */
-export type AttendeeStatus = 'going' | 'maybe' | 'interested' | 'waitlist'
+export type AttendeeStatus = 'going' | 'waitlist'
 
 /**
  * Difficulty Levels for outdoor activities
@@ -135,8 +133,6 @@ export interface EventWithOrganizer extends Event {
 export interface EventWithStats extends Event {
   attendee_counts: {
     going: number
-    maybe: number
-    interested: number
     waitlist: number
   }
 }

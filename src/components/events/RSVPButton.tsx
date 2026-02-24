@@ -5,15 +5,17 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
 import { updateRSVP, cancelRSVP } from '@/app/actions/rsvp';
 import { Check, X, Loader2 } from 'lucide-react';
 
 interface RSVPButtonProps {
   eventId: string;
-  currentStatus?: 'going' | 'maybe' | 'interested' | 'waitlist' | null;
+  currentStatus?: 'going' | 'waitlist' | null;
   isAuthenticated: boolean;
-  onStatusChange?: (status: 'going' | 'maybe' | 'interested' | null) => void;
+  variant?: 'full' | 'compact';
+  isFull?: boolean;
+  isCancelled?: boolean;
+  onStatusChange?: (status: 'going' | null) => void;
   onWaitlistRequired?: () => void;
   onLoginRequired?: () => void;
 }
@@ -22,17 +24,17 @@ export function RSVPButton({
   eventId,
   currentStatus,
   isAuthenticated,
+  variant = 'full',
+  isFull = false,
+  isCancelled = false,
   onStatusChange,
   onWaitlistRequired,
   onLoginRequired,
 }: RSVPButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>(
-    currentStatus && currentStatus !== 'waitlist' ? currentStatus : 'none'
-  );
 
-  const handleRSVP = async (status: 'going' | 'maybe' | 'interested') => {
+  const handleRSVP = async () => {
     // Check authentication
     if (!isAuthenticated) {
       onLoginRequired?.();
@@ -43,7 +45,7 @@ export function RSVPButton({
     setError(null);
 
     try {
-      const result = await updateRSVP(eventId, status);
+      const result = await updateRSVP(eventId, 'going');
 
       if (!result.success && result.action === 'join_waitlist') {
         // Event is full, redirect to waitlist
@@ -52,8 +54,7 @@ export function RSVPButton({
         return;
       }
 
-      setSelectedStatus(status);
-      onStatusChange?.(status);
+      onStatusChange?.('going');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update RSVP');
       console.error('RSVP error:', err);
@@ -70,23 +71,12 @@ export function RSVPButton({
 
     try {
       await cancelRSVP(eventId);
-      setSelectedStatus('none');
       onStatusChange?.(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to cancel RSVP');
       console.error('Cancel RSVP error:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newStatus = e.target.value;
-
-    if (newStatus === 'none') {
-      await handleCancel();
-    } else {
-      await handleRSVP(newStatus as 'going' | 'maybe' | 'interested');
     }
   };
 
@@ -113,18 +103,21 @@ export function RSVPButton({
   }
 
   // No RSVP yet - show primary RSVP button
-  if (!currentStatus || selectedStatus === 'none') {
+  if (!currentStatus) {
+    const isDisabled = loading || !isAuthenticated || isFull || isCancelled;
+    const buttonText = isCancelled ? 'Event Cancelled' : isFull ? 'Event Full' : 'RSVP to Event';
+
     return (
       <div className="flex flex-col gap-2">
         <Button
           variant="primary"
-          fullWidth
-          onClick={() => handleRSVP('going')}
-          disabled={loading || !isAuthenticated}
+          fullWidth={variant === 'full'}
+          onClick={handleRSVP}
+          disabled={isDisabled}
           loading={loading}
         >
-          <Check size={18} />
-          RSVP to Event
+          {!isCancelled && !isFull && <Check size={18} />}
+          {buttonText}
         </Button>
         {error && (
           <p className="text-sm text-red-600">{error}</p>
@@ -138,39 +131,31 @@ export function RSVPButton({
     );
   }
 
-  // Has RSVP - show status dropdown and cancel button
+  // Has RSVP - show "Going" status and cancel button
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <Select
-            value={selectedStatus}
-            onChange={handleSelectChange}
-            disabled={loading}
-          >
-            <option value="none">No RSVP</option>
-            <option value="going">Going</option>
-            <option value="maybe">Maybe</option>
-            <option value="interested">Interested</option>
-          </Select>
-        </div>
         <Button
-          variant="danger"
+          variant="success"
+          fullWidth={variant === 'full'}
+          disabled
+          className="flex-1"
+        >
+          <Check size={18} />
+          Going
+        </Button>
+        <Button
+          variant="ghost"
           size="sm"
           onClick={handleCancel}
           disabled={loading}
           title="Cancel RSVP"
         >
-          <X size={18} />
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
         </Button>
       </div>
       {error && (
         <p className="text-sm text-red-600">{error}</p>
-      )}
-      {loading && (
-        <p className="text-xs text-gray-500 text-center">
-          Updating RSVP...
-        </p>
       )}
     </div>
   );

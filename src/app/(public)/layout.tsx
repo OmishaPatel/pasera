@@ -97,7 +97,6 @@ export default function PublicLayout({
             .slice(0, 2),
         } : null}
         onLogin={() => router.push('/login')}
-        onSignup={() => router.push('/signup')}
         onLogout={handleLogout}
         onProfileClick={() => router.push('/profile')}
         variant="solid"

@@ -35,8 +35,8 @@ export default function LoginPage() {
     <div className="w-full max-w-md">
       <Card>
         <CardHeader
-          title="Welcome Back"
-          subtitle="Sign in to your Pasera account"
+          title="Welcome to Pasera"
+          subtitle="Sign in or create a new account"
         />
         <CardBody>
           <div className="space-y-3">
@@ -108,14 +108,25 @@ export default function LoginPage() {
           </div>
         </CardBody>
         <CardFooter className="text-center">
-          <p className="text-sm text-[var(--color-gray-600)]">
-            Don't have an account?{' '}
+          <p className="text-xs text-[var(--color-gray-600)] leading-relaxed">
+            New to Pasera? Your account will be created automatically on first sign-in.
+          </p>
+          <p className="text-xs text-[var(--color-gray-600)] mt-2">
+            By continuing, you agree to our{' '}
             <Link
-              href="/signup"
-              className="text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] font-medium transition-colors"
+              href="/terms"
+              className="text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors"
             >
-              Sign up
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link
+              href="/privacy"
+              className="text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition-colors"
+            >
+              Privacy Policy
             </Link>
+            .
           </p>
         </CardFooter>
       </Card>

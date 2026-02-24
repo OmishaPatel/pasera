@@ -68,7 +68,74 @@ export function AuthProvider({
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        // Profile doesn't exist - wait a bit and retry (trigger might be creating it)
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, waiting for trigger to create it...');
+
+          // Wait a moment for the database trigger to create the profile
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Retry fetching the profile
+          const { data: retryData, error: retryError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+          if (retryError) {
+            // If still not found, try to create it manually
+            if (retryError.code === 'PGRST116') {
+              console.log('Profile still not found after retry, creating manually...');
+              const { data: { user: authUser } } = await supabase.auth.getUser();
+
+              if (authUser) {
+                const { data: newProfile, error: createError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: authUser.id,
+                    email: authUser.email,
+                    full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+                    avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
+                  })
+                  .select()
+                  .single();
+
+                if (createError) {
+                  console.error('Error creating profile:', {
+                    message: createError.message,
+                    code: createError.code,
+                    details: createError.details,
+                    hint: createError.hint,
+                  });
+                  setLoading(false);
+                  return;
+                }
+
+                if (newProfile) {
+                  setUser(newProfile);
+                }
+              }
+            } else {
+              console.error('Error fetching profile on retry:', {
+                message: retryError.message,
+                code: retryError.code,
+                details: retryError.details,
+              });
+            }
+            setLoading(false);
+            return;
+          }
+
+          if (retryData) {
+            setUser(retryData);
+          }
+        } else {
+          console.error('Error fetching profile:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+          });
+        }
         setLoading(false);
         return;
       }
@@ -87,15 +154,17 @@ export function AuthProvider({
     provider: 'google' | 'facebook' | 'apple',
     redirectTo?: string
   ) => {
-    // Build callback URL with optional next parameter
+    // Use explicit URL for better Firefox compatibility
+    const baseUrl = process.env.NEXT_PUBLIC_URL || window.location.origin;
     const callbackUrl = redirectTo
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`
-      : `${window.location.origin}/auth/callback`;
+      ? `${baseUrl}/auth/callback?next=${encodeURIComponent(redirectTo)}`
+      : `${baseUrl}/auth/callback`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo: callbackUrl,
+        skipBrowserRedirect: false,
       },
     });
 

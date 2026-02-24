@@ -10,7 +10,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CapacityDisplay } from '@/components/events/CapacityDisplay';
-import { EventWithOrganizer } from '@/types/event';
+import { RSVPButton } from '@/components/events/RSVPButton';
+import { EventWithOrganizer, AttendeeStatus } from '@/types/event';
 import { Calendar, MapPin } from 'lucide-react';
 import { formatEventDateShort } from '@/lib/utils/date';
 import { cn } from '@/lib/utils/cn';
@@ -22,7 +23,9 @@ export interface EventCardProps extends Omit<React.HTMLAttributes<HTMLDivElement
   showOrganizer?: boolean;
   showCapacity?: boolean;
   showImage?: boolean;
-  onRSVP?: (eventId: string) => void;
+  rsvpStatus?: AttendeeStatus | null;
+  isAuthenticated?: boolean;
+  onRSVP?: (eventId: string, newStatus: 'going' | null) => void;
   onClick?: (eventId: string) => void;
 }
 
@@ -32,6 +35,8 @@ export function EventCard({
   showOrganizer = true,
   showCapacity = true,
   showImage = true,
+  rsvpStatus,
+  isAuthenticated = false,
   onRSVP,
   onClick,
   className,
@@ -183,14 +188,16 @@ export function EventCard({
       {/* Footer: RSVP Button */}
       {onRSVP && (
         <CardFooter className="border-t border-[var(--color-gray-200)]">
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={handleRSVPClick}
-            disabled={isFull || isCancelled}
-          >
-            {isCancelled ? 'Cancelled' : isFull ? 'Event Full' : 'RSVP'}
-          </Button>
+          <RSVPButton
+            eventId={event.id}
+            currentStatus={rsvpStatus}
+            isAuthenticated={isAuthenticated}
+            isFull={isFull}
+            isCancelled={isCancelled}
+            variant="compact"
+            onStatusChange={(status) => onRSVP(event.id, status)}
+            onLoginRequired={() => onClick?.(event.id)}
+          />
         </CardFooter>
       )}
     </Card>
