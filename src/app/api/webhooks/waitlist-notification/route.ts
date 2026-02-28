@@ -5,121 +5,104 @@ import { format } from 'date-fns';
 
 /**
  * Webhook handler for waitlist notifications
- * Triggered by Supabase when waitlist_notified_at is updated
+ * Triggered by database trigger when a user is automatically promoted from waitlist to going status
+ * Note: The database trigger (notify_waitlist_promotion_webhook) only fires for waitlist → going transitions,
+ * so we can assume all requests are valid promotion events
  */
 export async function POST(request: NextRequest) {
   try {
     // Parse webhook payload
     const payload = await request.json();
+    const { record } = payload;
 
-    console.log('[Webhook] Waitlist notification triggered:', {
-      type: payload.type,
-      table: payload.table,
-      record: payload.record?.user_id,
+    console.log('[Webhook] Waitlist promotion notification:', {
+      userId: record?.user_id,
+      eventId: record?.event_id,
     });
 
-    // Verify this is an UPDATE event for event_attendees
-    if (payload.type !== 'UPDATE' || payload.table !== 'event_attendees') {
+    // Validate required fields
+    if (!record?.user_id || !record?.event_id) {
+      console.error('[Webhook] Missing required fields:', record);
       return NextResponse.json(
-        { error: 'Invalid webhook event type' },
+        { error: 'Missing user_id or event_id in webhook payload' },
         { status: 400 }
       );
     }
 
-    const { record, old_record } = payload;
+    // Fetch event and user details
+    const supabase = createServiceRoleClient();
 
-    // Check if waitlist_notified_at was just set (null -> timestamp)
-    if (
-      !old_record?.waitlist_notified_at &&
-      record?.waitlist_notified_at &&
-      record?.status === 'waitlist'
-    ) {
-      // Fetch event and user details
-      const supabase = createServiceRoleClient();
+    const [eventResult, userResult] = await Promise.all([
+      supabase
+        .from('events')
+        .select('id, title, event_date, start_time, end_time')
+        .eq('id', record.event_id)
+        .single(),
+      supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('id', record.user_id)
+        .single(),
+    ]);
 
-      const [eventResult, userResult] = await Promise.all([
-        supabase
-          .from('events')
-          .select('id, title, event_date, start_time, end_time')
-          .eq('id', record.event_id)
-          .single(),
-        supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .eq('id', record.user_id)
-          .single(),
-      ]);
-
-      if (eventResult.error || !eventResult.data) {
-        console.error('[Webhook] Event not found:', eventResult.error);
-        return NextResponse.json(
-          { error: 'Event not found' },
-          { status: 404 }
-        );
-      }
-
-      if (userResult.error || !userResult.data) {
-        console.error('[Webhook] User not found:', userResult.error);
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
-
-      const event = eventResult.data;
-      const user = userResult.data;
-
-      // Format dates for email
-      const eventDate = format(new Date(event.event_date), 'EEEE, MMMM d, yyyy');
-      const eventTime = event.start_time
-        ? `${event.start_time}${event.end_time ? ` - ${event.end_time}` : ''}`
-        : 'Time TBD';
-      const expiresAt = format(
-        new Date(record.waitlist_expires_at),
-        'h:mm a \'on\' EEEE, MMMM d'
+    if (eventResult.error || !eventResult.data) {
+      console.error('[Webhook] Event not found:', eventResult.error);
+      return NextResponse.json(
+        { error: 'Event not found' },
+        { status: 404 }
       );
-
-      // Generate claim URL
-      const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
-      const claimUrl = `${baseUrl}/events/${event.id}?claim=true`;
-
-      // Send email notification
-      const emailResult = await sendWaitlistNotification({
-        to: user.email,
-        userName: user.full_name,
-        eventTitle: event.title,
-        eventDate,
-        eventTime,
-        claimUrl,
-        expiresAt,
-      });
-
-      if (!emailResult.success) {
-        console.error('[Webhook] Failed to send email:', emailResult.error);
-        return NextResponse.json(
-          { error: 'Failed to send email', details: emailResult.error },
-          { status: 500 }
-        );
-      }
-
-      console.log('[Webhook] Waitlist notification sent successfully:', {
-        userId: user.id,
-        eventId: event.id,
-        email: user.email,
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: 'Notification sent',
-        userId: user.id,
-        eventId: event.id,
-      });
     }
 
-    // Not a waitlist notification event, ignore
+    if (userResult.error || !userResult.data) {
+      console.error('[Webhook] User not found:', userResult.error);
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const event = eventResult.data;
+    const user = userResult.data;
+
+    // Format dates for email
+    const eventDate = format(new Date(event.event_date), 'EEEE, MMMM d, yyyy');
+    const eventTime = event.start_time
+      ? `${event.start_time}${event.end_time ? ` - ${event.end_time}` : ''}`
+      : 'Time TBD';
+
+    // Generate event URL
+    const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
+    const eventUrl = `${baseUrl}/events/${event.id}`;
+
+    // Send email notification
+    const emailResult = await sendWaitlistNotification({
+      to: user.email,
+      userName: user.full_name,
+      eventTitle: event.title,
+      eventDate,
+      eventTime,
+      eventUrl,
+    });
+
+    if (!emailResult.success) {
+      console.error('[Webhook] Failed to send email:', emailResult.error);
+      return NextResponse.json(
+        { error: 'Failed to send email', details: emailResult.error },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Webhook] Waitlist notification sent successfully:', {
+      userId: user.id,
+      eventId: event.id,
+      email: user.email,
+    });
+
     return NextResponse.json({
       success: true,
-      message: 'Event ignored (not a new waitlist notification)',
+      message: 'Notification sent',
+      userId: user.id,
+      eventId: event.id,
     });
   } catch (error) {
     console.error('[Webhook] Error processing waitlist notification:', error);

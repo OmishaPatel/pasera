@@ -11,12 +11,11 @@ interface WaitlistNotificationParams {
   eventTitle: string;
   eventDate: string;
   eventTime: string;
-  claimUrl: string;
-  expiresAt: string;
+  eventUrl: string;
 }
 
 /**
- * Send waitlist notification email
+ * Send waitlist notification email (when user is automatically promoted to 'going')
  */
 export async function sendWaitlistNotification(params: WaitlistNotificationParams) {
   try {
@@ -26,8 +25,7 @@ export async function sendWaitlistNotification(params: WaitlistNotificationParam
         eventTitle: params.eventTitle,
         eventDate: params.eventDate,
         eventTime: params.eventTime,
-        claimUrl: params.claimUrl,
-        expiresAt: params.expiresAt,
+        eventUrl: params.eventUrl,
         userName: params.userName,
       })
     );
@@ -37,24 +35,23 @@ export async function sendWaitlistNotification(params: WaitlistNotificationParam
       eventTitle: params.eventTitle,
       eventDate: params.eventDate,
       eventTime: params.eventTime,
-      claimUrl: params.claimUrl,
-      expiresAt: params.expiresAt,
+      eventUrl: params.eventUrl,
       userName: params.userName,
     });
 
     const { data, error } = await resend.emails.send({
       from: 'Pasera <notifications@pasera.co>',
       to: params.to,
-      subject: `🎉 Spot available: ${params.eventTitle}`,
+      subject: `✅ You're now attending: ${params.eventTitle}`,
       html,
       text,
       headers: {
-        'X-Entity-Ref-ID': `waitlist-${Date.now()}`,
+        'X-Entity-Ref-ID': `waitlist-promotion-${Date.now()}`,
       },
       tags: [
         {
           name: 'category',
-          value: 'waitlist_notification',
+          value: 'waitlist_promotion',
         },
       ],
     });

@@ -5,17 +5,16 @@
 // Comprehensive event summary card
 // ============================================
 
-import { Card, CardHeader, CardBody, CardFooter } from '@/components/ui/Card';
+import { Card, CardFooter } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { CapacityDisplay } from '@/components/events/CapacityDisplay';
 import { RSVPButton } from '@/components/events/RSVPButton';
 import { EventWithOrganizer, AttendeeStatus } from '@/types/event';
-import { Calendar, MapPin } from 'lucide-react';
+import { Calendar, MapPin, Loader2 } from 'lucide-react';
 import { formatEventDateShort } from '@/lib/utils/date';
 import { cn } from '@/lib/utils/cn';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface EventCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'> {
   event: EventWithOrganizer;
@@ -27,6 +26,12 @@ export interface EventCardProps extends Omit<React.HTMLAttributes<HTMLDivElement
   isAuthenticated?: boolean;
   onRSVP?: (eventId: string, newStatus: 'going' | null) => void;
   onClick?: (eventId: string) => void;
+
+  // Waitlist props
+  waitlistPosition?: number | null;
+  waitlistCount?: number;
+  onJoinWaitlist?: (eventId: string) => void;
+  isCancelling?: boolean;
 }
 
 export function EventCard({
@@ -40,6 +45,10 @@ export function EventCard({
   onRSVP,
   onClick,
   className,
+  waitlistPosition,
+  waitlistCount = 0,
+  onJoinWaitlist,
+  isCancelling = false,
   ...props
 }: EventCardProps) {
   const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -57,17 +66,86 @@ export function EventCard({
     }
   };
 
-  // Handle RSVP click (prevent card click propagation)
-  const handleRSVPClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onRSVP) {
-      onRSVP(event.id);
-    }
-  };
-
   // Check if event is full
   const isFull = event.current_capacity >= event.max_capacity;
   const isCancelled = event.status === 'cancelled';
+
+  // Render appropriate action buttons based on event and user state
+  const renderActionButtons = () => {
+    // Show loading state during cancellation
+    if (isCancelling) {
+      return (
+        <Button
+          variant="secondary"
+          fullWidth
+          disabled
+          className="cursor-not-allowed"
+        >
+          <Loader2 size={18} className="animate-spin mr-2" />
+          Cancelling...
+        </Button>
+      );
+    }
+
+    // Case 1: User on waitlist
+    if (rsvpStatus === 'waitlist') {
+      return (
+        <div className="w-full">
+          <Badge variant="default" size="md" className="w-full justify-center bg-yellow-100 text-yellow-800 border-yellow-300">
+            On Waitlist (#{waitlistPosition})
+          </Badge>
+        </div>
+      );
+    }
+
+    // Case 3: Event full, user not on waitlist
+    if (isFull && !rsvpStatus) {
+      // Only show Join Waitlist button if there's an actual waitlist
+      if (waitlistCount > 0) {
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant="full" size="sm">Full</Badge>
+            <Button
+              variant="secondary"
+              fullWidth
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isAuthenticated) {
+                  onClick?.(event.id); // Navigate to detail page for login
+                } else {
+                  onJoinWaitlist?.(event.id);
+                }
+              }}
+            >
+              Join Waitlist
+            </Button>
+          </div>
+        );
+      } else {
+        // Event is full but no waitlist exists - just show Full badge
+        return (
+          <Badge variant="full" size="md" className="w-full justify-center">
+            Full
+          </Badge>
+        );
+      }
+    }
+
+    // Case 4: Default - show RSVPButton
+    return (
+      <RSVPButton
+        eventId={event.id}
+        currentStatus={rsvpStatus}
+        isAuthenticated={isAuthenticated}
+        isFull={isFull}
+        isCancelled={isCancelled}
+        variant="compact"
+        onStatusChange={(status) => onRSVP?.(event.id, status)}
+        onLoginRequired={() => onClick?.(event.id)}
+      />
+    );
+  };
 
   return (
     <Card
@@ -175,29 +253,26 @@ export function EventCard({
         {/* Capacity Display */}
         {showCapacity && (
           <div className="pt-2 border-t border-[var(--color-gray-200)]">
-            <CapacityDisplay
-              current={event.current_capacity}
-              max={event.max_capacity}
-              variant="compact"
-              showPercentage
-            />
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--color-gray-600)]">
+                Capacity: <span className="font-semibold text-[var(--color-gray-900)] tabular-nums">
+                  {event.current_capacity}/{event.max_capacity}
+                </span>
+              </span>
+              {isFull && waitlistCount > 0 && (
+                <span className="text-xs text-[var(--color-gray-500)]">
+                  {waitlistCount} on waitlist
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Footer: RSVP Button */}
+      {/* Footer: Dynamic Waitlist/RSVP Actions */}
       {onRSVP && (
         <CardFooter className="border-t border-[var(--color-gray-200)]">
-          <RSVPButton
-            eventId={event.id}
-            currentStatus={rsvpStatus}
-            isAuthenticated={isAuthenticated}
-            isFull={isFull}
-            isCancelled={isCancelled}
-            variant="compact"
-            onStatusChange={(status) => onRSVP(event.id, status)}
-            onLoginRequired={() => onClick?.(event.id)}
-          />
+          {renderActionButtons()}
         </CardFooter>
       )}
     </Card>

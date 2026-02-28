@@ -311,7 +311,7 @@ export function Header({
             ) : (
               // Unauthenticated state: Sign In and Sign Up buttons
               <>
-                <Button variant="outline" size="sm" onClick={onLogin}>
+                <Button variant="secondary" size="sm" onClick={onLogin}>
                   Sign In
                 </Button>
                 <Button variant="primary" size="sm" onClick={onSignup}>
@@ -434,7 +434,7 @@ export function Header({
                 // Unauthenticated state
                 <div className="space-y-2">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     fullWidth
                     onClick={() => {
                       setIsMobileMenuOpen(false);

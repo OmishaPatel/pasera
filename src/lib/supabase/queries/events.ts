@@ -234,3 +234,54 @@ export async function getUserRSVPsForEvents(
 
   return rsvpMap;
 }
+
+/**
+ * Get waitlist data for multiple events (browse page optimization)
+ * Returns waitlist count per event and user's waitlist info if applicable
+ */
+export async function getWaitlistDataForEvents(
+  eventIds: string[],
+  userId?: string
+): Promise<Record<string, {
+  position: number | null;
+  count: number;
+}>> {
+  const supabase = await createClient();
+
+  // Initialize result object
+  const result: Record<string, {
+    position: number | null;
+    count: number;
+  }> = {};
+
+  // Initialize all events with default values
+  eventIds.forEach(eventId => {
+    result[eventId] = {
+      position: null,
+      count: 0,
+    };
+  });
+
+  // Fetch all waitlist entries for these events
+  const { data: waitlistEntries, error } = await supabase
+    .from('event_attendees')
+    .select('event_id, user_id, waitlist_position, created_at')
+    .eq('status', 'waitlist')
+    .in('event_id', eventIds);
+
+  if (error) {
+    console.error('Error fetching waitlist data:', error);
+    return result;
+  }
+
+  // Count waitlist entries per event and find user's position
+  waitlistEntries?.forEach(entry => {
+    result[entry.event_id].count++;
+
+    if (userId && entry.user_id === userId) {
+      result[entry.event_id].position = entry.waitlist_position;
+    }
+  });
+
+  return result;
+}

@@ -47,8 +47,6 @@ export type Database = {
           responded_at: string
           status: string
           user_id: string
-          waitlist_expires_at: string | null
-          waitlist_notified_at: string | null
           waitlist_position: number | null
         }
         Insert: {
@@ -58,8 +56,6 @@ export type Database = {
           responded_at?: string
           status?: string
           user_id: string
-          waitlist_expires_at?: string | null
-          waitlist_notified_at?: string | null
           waitlist_position?: number | null
         }
         Update: {
@@ -69,8 +65,6 @@ export type Database = {
           responded_at?: string
           status?: string
           user_id?: string
-          waitlist_expires_at?: string | null
-          waitlist_notified_at?: string | null
           waitlist_position?: number | null
         }
         Relationships: [

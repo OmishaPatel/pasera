@@ -81,8 +81,6 @@ export async function joinWaitlist(eventId: string) {
         status: 'waitlist',
         waitlist_position: nextPosition,
         responded_at: new Date().toISOString(),
-        waitlist_notified_at: null,
-        waitlist_expires_at: null,
       },
       {
         onConflict: 'event_id,user_id',
@@ -106,79 +104,7 @@ export async function joinWaitlist(eventId: string) {
   };
 }
 
-/**
- * Claim a waitlist spot (when notified that a spot opened)
- */
-export async function claimWaitlistSpot(eventId: string) {
-  const supabase = await createClient();
-
-  // Verify authentication
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('You must be logged in to claim a spot');
-  }
-
-  // Get user's waitlist entry
-  const { data: attendee, error: attendeeError } = await supabase
-    .from('event_attendees')
-    .select('*')
-    .eq('event_id', eventId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (attendeeError || !attendee) {
-    throw new Error('Waitlist entry not found');
-  }
-
-  if (attendee.status !== 'waitlist') {
-    throw new Error('You are not on the waitlist for this event');
-  }
-
-  // Check if user was notified
-  if (!attendee.waitlist_notified_at) {
-    throw new Error('You have not been notified of an available spot yet');
-  }
-
-  // Check if claim window has expired (2 hours)
-  if (attendee.waitlist_expires_at) {
-    const expirationTime = new Date(attendee.waitlist_expires_at);
-    const now = new Date();
-
-    if (now > expirationTime) {
-      throw new Error('Your claim window has expired');
-    }
-  }
-
-  // Update status from waitlist to going
-  const { error: updateError } = await supabase
-    .from('event_attendees')
-    .update({
-      status: 'going',
-      waitlist_position: null,
-      waitlist_notified_at: null,
-      waitlist_expires_at: null,
-      responded_at: new Date().toISOString(),
-    })
-    .eq('event_id', eventId)
-    .eq('user_id', user.id);
-
-  if (updateError) {
-    console.error('Error claiming waitlist spot:', updateError);
-    throw new Error('Failed to claim spot. Please try again.');
-  }
-
-  // Revalidate pages
-  revalidatePath(`/events/${eventId}`);
-  revalidatePath('/dashboard');
-
-  return {
-    success: true,
-    message: 'Successfully claimed your spot!',
-  };
-}
+// claimWaitlistSpot function removed - users are now automatically promoted
 
 /**
  * Leave the waitlist

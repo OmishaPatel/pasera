@@ -18,8 +18,10 @@ import { CapacityDisplay } from '@/components/events/CapacityDisplay';
 import { AttendeeCard } from '@/components/events/AttendeeCard';
 import { AttendeesModal } from '@/components/modals/AttendeesModal';
 import { ShareModal } from '@/components/modals/ShareModal';
-import { ClaimSpotDialog } from '@/components/modals/ClaimSpotDialog';
+// ClaimSpotDialog removed - automatic promotion implemented
+import { WaitlistModal } from '@/components/modals/WaitlistModal';
 import { RSVPButton } from '@/components/events/RSVPButton';
+import { joinWaitlist } from '@/app/actions/waitlist';
 import { EventWithOrganizer, EventAttendee } from '@/types/event';
 import { Profile } from '@/types/user';
 import { MapPin, Users, Share2, Calendar, AlertCircle } from 'lucide-react';
@@ -55,7 +57,14 @@ export function EventDetailClient({
   const { user } = useAuth();
   const [showAttendeesModal, setShowAttendeesModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showClaimDialog, setShowClaimDialog] = useState(false);
+  const [cancelConfirmEvent, setCancelConfirmEvent] = useState<{
+    id: string;
+    title: string;
+    waitlistCount: number;
+  } | null>(null);
+  const [leaveWaitlistConfirm, setLeaveWaitlistConfirm] = useState(false);
+  const [cancellingRSVP, setCancellingRSVP] = useState(false);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
 
   // Filter attendees by status (for preview)
   const goingAttendees = attendees.filter(a => a.status === 'going');
@@ -71,13 +80,79 @@ export function EventDetailClient({
     ? `${window.location.origin}/events/${event.id}`
     : '';
 
-  // Check for claim query parameter and show claim dialog if user is on waitlist
-  useEffect(() => {
-    const claimParam = searchParams.get('claim');
-    if (claimParam === 'true' && userRSVP?.status === 'waitlist' && userRSVP?.waitlist_notified_at) {
-      setShowClaimDialog(true);
+  // Claim dialog removed - users are now automatically promoted
+
+  // Handle RSVP cancellation
+  const handleRSVPChange = async (newStatus: 'going' | null) => {
+    if (!user) return;
+
+    // If cancelling, check current status
+    if (newStatus === null) {
+      // If user is currently on waitlist, show leave waitlist confirmation
+      if (userRSVP?.status === 'waitlist') {
+        setLeaveWaitlistConfirm(true);
+        return;
+      }
+
+      // If user is going and there's a waitlist, show cancel confirmation
+      if (userRSVP?.status === 'going' && attendeeCounts.waitlist > 0) {
+        setCancelConfirmEvent({
+          id: event.id,
+          title: event.title,
+          waitlistCount: attendeeCounts.waitlist,
+        });
+        return;
+      }
+
+      // No waitlist - cancel directly
+      await performCancel();
+    } else {
+      // Just refresh for other status changes
+      router.refresh();
     }
-  }, [searchParams, userRSVP]);
+  };
+
+  // Perform the actual cancellation
+  const performCancel = async () => {
+    if (!user) return;
+
+    setCancellingRSVP(true);
+    try {
+      const { cancelRSVP } = await import('@/app/actions/rsvp');
+      const result = await cancelRSVP(event.id);
+
+      if (result.success) {
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to cancel RSVP:', error);
+    } finally {
+      setCancellingRSVP(false);
+    }
+  };
+
+  // Handle joining waitlist
+  const handleJoinWaitlist = () => {
+    if (!user) {
+      router.push(`/login?next=/events/${event.id}`);
+      return;
+    }
+    setShowWaitlistModal(true);
+  };
+
+  // Perform the actual waitlist join
+  const handleConfirmJoinWaitlist = async () => {
+    try {
+      const result = await joinWaitlist(event.id);
+
+      if (result.success) {
+        setShowWaitlistModal(false);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to join waitlist:', error);
+    }
+  };
 
 
   return (
@@ -96,7 +171,7 @@ export function EventDetailClient({
       <div className="bg-[var(--color-gray-50)] py-8">
         <Container size="lg">
           {/* Event Full Banner */}
-          {isFull && !isCancelled && (
+          {isFull && !isCancelled && userRSVP?.status !== 'going' && (
             <Card className="mb-6 bg-[var(--color-warning)]/10 border-[var(--color-warning)]">
               <CardBody>
                 <div className="flex items-start gap-3">
@@ -106,13 +181,25 @@ export function EventDetailClient({
                       This event is full
                     </h3>
                     <p className="text-sm text-[var(--color-gray-700)] mb-3">
-                      All spots have been filled. You can join the waitlist or check out other events.
+                      {userRSVP?.status === 'waitlist'
+                        ? `You're on the waitlist (position #${userRSVP.waitlist_position}). Check out other events or view the waitlist.`
+                        : 'All spots have been filled. You can join the waitlist or check out other events.'}
                     </p>
-                    <Link href={`/events/${event.id}/full`}>
-                      <Button variant="secondary" size="sm">
-                        View Waitlist
+                    {userRSVP?.status === 'waitlist' ? (
+                      <Link href={`/events/${event.id}/full`}>
+                        <Button variant="secondary" size="sm">
+                          View Waitlist
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleJoinWaitlist}
+                      >
+                        Join Waitlist
                       </Button>
-                    </Link>
+                    )}
                   </div>
                 </div>
               </CardBody>
@@ -285,10 +372,10 @@ export function EventDetailClient({
                   isFull={isFull}
                   isCancelled={isCancelled}
                   variant="full"
-                  waitlistNotifiedAt={userRSVP?.waitlist_notified_at}
-                  waitlistExpiresAt={userRSVP?.waitlist_expires_at}
+                  waitlistPosition={userRSVP?.waitlist_position}
                   onLoginRequired={() => router.push(`/login?next=/events/${event.id}`)}
-                  onStatusChange={() => router.refresh()}
+                  onStatusChange={handleRSVPChange}
+                  onWaitlistRequired={handleJoinWaitlist}
                 />
 
                 <Button
@@ -335,16 +422,97 @@ export function EventDetailClient({
         shareUrl={shareUrl}
       />
 
-      <ClaimSpotDialog
-        open={showClaimDialog}
-        onClose={() => setShowClaimDialog(false)}
-        eventId={event.id}
-        eventTitle={event.title}
-        expiresAt={userRSVP?.waitlist_expires_at}
-        onSuccess={() => {
-          setShowClaimDialog(false);
-          router.refresh();
-        }}
+      {/* Cancel Confirmation Modal */}
+      {cancelConfirmEvent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Cancel Your RSVP?
+            </h3>
+            <p className="text-gray-600 mb-1">
+              You're currently confirmed for <strong>{cancelConfirmEvent.title}</strong>.
+            </p>
+            <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm">
+              ⚠️ If you cancel, you'll lose your spot. The next person on the waitlist will be automatically promoted
+              (currently <strong>{cancelConfirmEvent.waitlistCount} {cancelConfirmEvent.waitlistCount === 1 ? 'person' : 'people'}</strong> waiting).
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={async () => {
+                  await performCancel();
+                  setCancelConfirmEvent(null);
+                }}
+                disabled={cancellingRSVP}
+                loading={cancellingRSVP}
+              >
+                Cancel RSVP
+              </Button>
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setCancelConfirmEvent(null)}
+                disabled={cancellingRSVP}
+              >
+                Keep RSVP
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Waitlist Confirmation Modal */}
+      {leaveWaitlistConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Leave the Waitlist?
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to leave the waitlist for <strong>{event.title}</strong>?
+              {userRSVP?.waitlist_position && (
+                <span className="block mt-2 text-sm">
+                  You're currently at position <strong>#{userRSVP.waitlist_position}</strong>.
+                </span>
+              )}
+            </p>
+            <p className="text-gray-500 text-sm mb-4">
+              If you leave, you'll lose your spot and will need to rejoin at the end of the waitlist if you change your mind.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="danger"
+                fullWidth
+                onClick={async () => {
+                  await performCancel();
+                  setLeaveWaitlistConfirm(false);
+                }}
+                disabled={cancellingRSVP}
+                loading={cancellingRSVP}
+              >
+                Leave Waitlist
+              </Button>
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => setLeaveWaitlistConfirm(false)}
+                disabled={cancellingRSVP}
+              >
+                Stay on Waitlist
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Waitlist Modal */}
+      <WaitlistModal
+        open={showWaitlistModal}
+        onClose={() => setShowWaitlistModal(false)}
+        event={event}
+        currentWaitlistCount={attendeeCounts.waitlist}
+        onJoin={handleConfirmJoinWaitlist}
       />
     </>
   );
