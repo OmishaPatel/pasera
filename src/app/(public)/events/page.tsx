@@ -1,7 +1,7 @@
 // Browse Events Page
 // Server component for fetching events data
 
-import { getEvents, getUserRSVPsForEvents } from '@/lib/supabase/queries/events';
+import { getEvents, getUserRSVPsForEvents, getWaitlistDataForEvents } from '@/lib/supabase/queries/events';
 import { createClient } from '@/lib/supabase/server';
 import { EventsPageClient } from './EventsPageClient';
 import { AttendeeStatus } from '@/types/event';
@@ -24,11 +24,23 @@ export default async function BrowseEventsPage() {
   // Convert Map to plain object for client component serialization
   const userRSVPsObject = Object.fromEntries(userRSVPs);
 
+  // Fetch waitlist data for all events
+  let waitlistData: Record<string, {
+    position: number | null;
+    count: number;
+  }> = {};
+
+  if (events.length > 0) {
+    const eventIds = events.map(e => e.id);
+    waitlistData = await getWaitlistDataForEvents(eventIds, user?.id);
+  }
+
   return (
     <EventsPageClient
       events={events}
       userRSVPs={userRSVPsObject}
       isAuthenticated={!!user}
+      waitlistData={waitlistData}
     />
   );
 }

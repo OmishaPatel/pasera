@@ -15,8 +15,7 @@ interface WaitlistNotificationEmailProps {
   eventTitle: string;
   eventDate: string;
   eventTime: string;
-  claimUrl: string;
-  expiresAt: string;
+  eventUrl: string;
   userName?: string;
 }
 
@@ -24,8 +23,7 @@ export function WaitlistNotificationEmail({
   eventTitle,
   eventDate,
   eventTime,
-  claimUrl,
-  expiresAt,
+  eventUrl,
   userName,
 }: WaitlistNotificationEmailProps) {
   return (
@@ -35,9 +33,9 @@ export function WaitlistNotificationEmail({
         <Container style={container}>
           <Section style={header}>
             <Text style={logo}>🏔️ Pasera</Text>
-            <Heading style={title}>Great News! A Spot Opened Up!</Heading>
+            <Heading style={title}>You're Now Attending!</Heading>
             <Text style={subtitle}>
-              {userName ? `Hi ${userName}, y` : 'Y'}ou've moved to the front of the waitlist
+              {userName ? `Hi ${userName}, y` : 'Y'}ou've been automatically moved from the waitlist
             </Text>
           </Section>
 
@@ -47,16 +45,16 @@ export function WaitlistNotificationEmail({
             <Text style={eventInfo}>🕐 {eventTime}</Text>
           </Section>
 
-          <Section style={urgentNotice}>
-            <Text style={urgentNoticeText}>
-              <strong>⏰ Time Sensitive:</strong> You have until <strong>{expiresAt}</strong> to claim your spot.
-              If you don't claim it within 2 hours, it will be offered to the next person in line.
+          <Section style={confirmNotice}>
+            <Text style={confirmNoticeText}>
+              <strong>✅ You're all set!</strong> A spot opened up and you've been automatically confirmed for this event.
+              If you can no longer attend, please cancel your RSVP from the event page so others can join.
             </Text>
           </Section>
 
           <Section style={buttonContainer}>
-            <Button href={claimUrl} style={ctaButton}>
-              Claim Your Spot Now
+            <Button href={eventUrl} style={ctaButton}>
+              View Event Details
             </Button>
           </Section>
 
@@ -64,22 +62,22 @@ export function WaitlistNotificationEmail({
             <Text style={linkText}>
               Or copy and paste this link into your browser:
             </Text>
-            <Link href={claimUrl} style={link}>
-              {claimUrl}
+            <Link href={eventUrl} style={link}>
+              {eventUrl}
             </Link>
           </Section>
 
           <Section style={footer}>
             <Hr style={hr} />
             <Text style={footerText}>
-              This email was sent because you joined the waitlist for this event on Pasera.
+              This email was sent because you were on the waitlist for this event on Pasera.
             </Text>
             <Text style={footerText}>
-              <Link href={`${claimUrl.split('/events/')[0]}/dashboard`} style={footerLink}>
+              <Link href={`${eventUrl.split('/events/')[0]}/dashboard`} style={footerLink}>
                 Manage your events
               </Link>
               {' | '}
-              <Link href={`${claimUrl.split('/events/')[0]}/settings`} style={footerLink}>
+              <Link href={`${eventUrl.split('/events/')[0]}/settings`} style={footerLink}>
                 Email preferences
               </Link>
             </Text>
@@ -151,17 +149,17 @@ const eventInfo = {
   margin: '0 0 5px',
 };
 
-const urgentNotice = {
-  backgroundColor: '#fff3cd',
-  borderLeft: '4px solid #ffc107',
+const confirmNotice = {
+  backgroundColor: '#d4edda',
+  borderLeft: '4px solid #28a745',
   padding: '15px',
   margin: '0 40px 30px',
   borderRadius: '4px',
 };
 
-const urgentNoticeText = {
+const confirmNoticeText = {
   fontSize: '14px',
-  color: '#856404',
+  color: '#155724',
   margin: '0',
 };
 
@@ -231,29 +229,27 @@ export function WaitlistNotificationEmailText({
   eventTitle,
   eventDate,
   eventTime,
-  claimUrl,
-  expiresAt,
+  eventUrl,
   userName,
 }: WaitlistNotificationEmailProps) {
   return `
-Pasera - A Spot Opened Up!
+Pasera - You're Now Attending!
 
 Hi ${userName || 'there'},
 
-Great news! A spot has opened up for the event you were waitlisted for:
+Great news! A spot has opened up and you've been automatically confirmed for this event:
 
 Event: ${eventTitle}
 Date: ${eventDate}
 Time: ${eventTime}
 
-IMPORTANT: You have until ${expiresAt} to claim your spot (2 hours from now).
-If you don't claim it within this time, it will be offered to the next person in line.
+You're all set! If you can no longer attend, please cancel your RSVP from the event page so others can join.
 
-Claim your spot now:
-${claimUrl}
+View event details:
+${eventUrl}
 
 ---
-This email was sent because you joined the waitlist for this event on Pasera.
+This email was sent because you were on the waitlist for this event on Pasera.
 
 © ${new Date().getFullYear()} Pasera. All rights reserved.
   `.trim();

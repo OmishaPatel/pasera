@@ -9,8 +9,12 @@ import { useAuth } from '@/context/AuthContext';
 import { Container } from '@/components/layout/Container';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
 import { EventCard } from '@/components/events/EventCard';
 import { Badge } from '@/components/ui/Badge';
+import { WaitlistModal } from '@/components/modals/WaitlistModal';
+import { Toast } from '@/components/ui/Toast';
+import { joinWaitlist } from '@/app/actions/waitlist';
 import { Search, Filter, Calendar } from 'lucide-react';
 import type { EventWithOrganizer, AttendeeStatus } from '@/types/event';
 
@@ -18,9 +22,13 @@ interface EventsPageClientProps {
   events: EventWithOrganizer[];
   userRSVPs: Record<string, AttendeeStatus>;
   isAuthenticated: boolean;
+  waitlistData: Record<string, {
+    position: number | null;
+    count: number;
+  }>;
 }
 
-export function EventsPageClient({ events, userRSVPs, isAuthenticated }: EventsPageClientProps) {
+export function EventsPageClient({ events, userRSVPs, isAuthenticated, waitlistData }: EventsPageClientProps) {
   const router = useRouter();
   const { user } = useAuth();
 
@@ -30,8 +38,26 @@ export function EventsPageClient({ events, userRSVPs, isAuthenticated }: EventsP
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Local state for optimistic RSVP updates
-  const [localRSVPs, setLocalRSVPs] = useState(userRSVPs);
+  // Modal state
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [selectedEventForWaitlist, setSelectedEventForWaitlist] = useState<EventWithOrganizer | null>(null);
+
+  // Cancel confirmation modal state
+  const [cancelConfirmEvent, setCancelConfirmEvent] = useState<{
+    id: string;
+    title: string;
+    waitlistCount: number;
+  } | null>(null);
+
+  // Loading states for immediate user feedback
+  const [cancellingEventId, setCancellingEventId] = useState<string | null>(null);
+
+  // Toast notification state
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
 
   // Derived filtered events using useMemo for performance
   const filteredEvents = useMemo(() => {
@@ -77,26 +103,100 @@ export function EventsPageClient({ events, userRSVPs, isAuthenticated }: EventsP
     router.push(`/events/${eventId}`);
   };
 
-  // Handle RSVP with optimistic updates
+  // Handle RSVP - rely on server state
   const handleRSVP = async (eventId: string, newStatus: 'going' | null) => {
     if (!user) {
       router.push(`/login?next=/events`);
       return;
     }
 
-    // Optimistic update
-    setLocalRSVPs(prev => {
-      const updated = { ...prev };
-      if (newStatus === null) {
-        delete updated[eventId];  // Remove RSVP entirely
-      } else {
-        updated[eventId] = newStatus;
-      }
-      return updated;
-    });
+    // If cancelling, show loading state during operation
+    if (newStatus === null) {
+      setCancellingEventId(eventId);
+      await handleCancel(eventId);
+      setCancellingEventId(null);
+      return;
+    }
 
     // Refresh to fetch updated event data from server
     router.refresh();
+  };
+
+  // Handle join waitlist
+  const handleJoinWaitlist = (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (event) {
+      setSelectedEventForWaitlist(event);
+      setShowWaitlistModal(true);
+    }
+  };
+
+  // Perform join waitlist action
+  const handleConfirmJoinWaitlist = async () => {
+    if (!selectedEventForWaitlist) return;
+
+    try {
+      const result = await joinWaitlist(selectedEventForWaitlist.id);
+
+      if (result.success) {
+        showToast(`You're #${result.position} on the waitlist!`, 'success');
+        router.refresh();
+      } else {
+        showToast(result.message || 'Failed to join waitlist', 'error');
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to join waitlist', 'error');
+    } finally {
+      setShowWaitlistModal(false);
+      setSelectedEventForWaitlist(null);
+    }
+  };
+
+  // Claim spot handler removed - users are now automatically promoted
+
+  // Handle cancel with waitlist check
+  const handleCancel = async (eventId: string) => {
+    const event = events.find(e => e.id === eventId);
+    const waitlistCount = waitlistData[eventId]?.count || 0;
+
+    // Show confirmation if waitlist exists
+    if (waitlistCount > 0) {
+      setCancelConfirmEvent({
+        id: eventId,
+        title: event?.title || '',
+        waitlistCount,
+      });
+      return;
+    }
+
+    // No waitlist - cancel directly
+    await performCancel(eventId);
+  };
+
+  // Perform the actual cancellation
+  const performCancel = async (eventId: string) => {
+    if (!user) return;
+
+    try {
+      const { cancelRSVP } = await import('@/app/actions/rsvp');
+      const result = await cancelRSVP(eventId);
+
+      if (result.success) {
+        showToast('RSVP cancelled successfully', 'success');
+        router.refresh();
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to cancel RSVP';
+      if (!errorMessage.includes('No RSVP found')) {
+        showToast(errorMessage, 'error');
+      }
+    }
+  };
+
+  // Toast helper
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast(null), 5000);
   };
 
   // Check if any filters are active
@@ -260,13 +360,17 @@ export function EventsPageClient({ events, userRSVPs, isAuthenticated }: EventsP
               <EventCard
                 key={event.id}
                 event={event}
-                rsvpStatus={localRSVPs[event.id] || null}
+                rsvpStatus={userRSVPs[event.id] || null}
                 isAuthenticated={isAuthenticated}
                 showOrganizer
                 showCapacity
                 showImage
                 onClick={handleEventClick}
                 onRSVP={handleRSVP}
+                waitlistPosition={waitlistData[event.id]?.position}
+                waitlistCount={waitlistData[event.id]?.count || 0}
+                onJoinWaitlist={handleJoinWaitlist}
+                isCancelling={cancellingEventId === event.id}
               />
             ))}
           </div>
@@ -293,6 +397,66 @@ export function EventsPageClient({ events, userRSVPs, isAuthenticated }: EventsP
               </button>
             )}
           </div>
+        )}
+
+        {/* Waitlist Modal */}
+        {showWaitlistModal && selectedEventForWaitlist && (
+          <WaitlistModal
+            open={showWaitlistModal}
+            onClose={() => {
+              setShowWaitlistModal(false);
+              setSelectedEventForWaitlist(null);
+            }}
+            event={selectedEventForWaitlist}
+            currentWaitlistCount={waitlistData[selectedEventForWaitlist.id]?.count || 0}
+            onJoin={handleConfirmJoinWaitlist}
+          />
+        )}
+
+        {/* Cancel Confirmation Modal */}
+        {cancelConfirmEvent && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Cancel Your RSVP?
+              </h3>
+              <p className="text-gray-600 mb-1">
+                You're currently confirmed for <strong>{cancelConfirmEvent.title}</strong>.
+              </p>
+              <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 text-sm">
+                ⚠️ If you cancel, you'll lose your spot and the next person on the waitlist will be automatically promoted. You'll need to join the waitlist to attend
+                (currently <strong>{cancelConfirmEvent.waitlistCount} {cancelConfirmEvent.waitlistCount === 1 ? 'person' : 'people'}</strong> waiting).
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="danger"
+                  fullWidth
+                  onClick={() => {
+                    performCancel(cancelConfirmEvent.id);
+                    setCancelConfirmEvent(null);
+                  }}
+                >
+                  Cancel RSVP
+                </Button>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => setCancelConfirmEvent(null)}
+                >
+                  Keep My Spot
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {toast?.show && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         )}
       </Container>
     </div>

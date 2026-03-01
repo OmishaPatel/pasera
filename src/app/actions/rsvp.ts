@@ -66,10 +66,8 @@ export async function updateRSVP(
         user_id: user.id,
         status,
         responded_at: new Date().toISOString(),
-        // Clear waitlist fields when updating RSVP
+        // Clear waitlist position when updating RSVP
         waitlist_position: null,
-        waitlist_notified_at: null,
-        waitlist_expires_at: null,
       },
       {
         onConflict: 'event_id,user_id',
@@ -104,6 +102,7 @@ export async function updateRSVP(
 
 /**
  * Cancel user's RSVP for an event
+ * If user was 'going' and a waitlist exists, they're added to the end of the waitlist
  */
 export async function cancelRSVP(eventId: string) {
   const supabase = await createClient();
@@ -129,7 +128,7 @@ export async function cancelRSVP(eventId: string) {
     throw new Error('No RSVP found to cancel');
   }
 
-  // Delete the RSVP (will trigger DB function to update capacity and notify waitlist)
+  // Delete RSVP completely (no auto-rejoin waitlist)
   const { error: deleteError } = await supabase
     .from('event_attendees')
     .delete()
@@ -141,13 +140,15 @@ export async function cancelRSVP(eventId: string) {
     throw new Error('Failed to cancel RSVP. Please try again.');
   }
 
-  // Revalidate the event page
+  // Revalidate pages
   revalidatePath(`/events/${eventId}`);
+  revalidatePath('/events');
   revalidatePath('/dashboard');
 
   return {
     success: true,
     message: 'RSVP cancelled successfully',
+    joinedWaitlist: false,
   };
 }
 

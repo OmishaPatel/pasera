@@ -105,8 +105,6 @@ export interface EventAttendee {
 
   // Waitlist Management
   waitlist_position?: number
-  waitlist_notified_at?: string  // When user was notified of open spot
-  waitlist_expires_at?: string   // 2-hour claim window deadline
 
   // Timestamp
   created_at: string
